@@ -1,0 +1,93 @@
+server:
+  tomcat:
+    uri-encoding: utf-8
+    threads:
+      max: 200
+      min-spare: 30
+    connection-timeout: 5000ms
+  port: 8080
+  servlet:
+    context-path: /emos-wx-api
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/emos?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    tomcat:
+      initial-size: 8
+      max-active: 16
+      min-idle: 8
+      max-wait: 60000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+  redis:
+    database: 0
+    host: localhost
+    port: 6379
+    jedis:
+      pool:
+        max-active: 1000
+        max-wait: -1ms
+        max-idle: 16
+        min-idle: 8
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: emos
+      authentication-database: admin
+      username: admin
+      password: abc123456
+  mail:
+    default-encoding: UTF-8
+    host: smtp.qq.com
+    username: 1033538677@qq.com
+    password: bbjocotyrmxebdcf
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+  servlet:
+    multipart:
+      max-file-size: 5GB
+      max-request-size: 5GB
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.xinlian.emos.wx.db.pojo
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    root: info
+    com.xinlian.emos.wx.db.dao: warn
+  pattern:
+    console: "%d{HH:mm:ss} %-5level %msg%n"
+
+emos:
+  jwt:
+    secret: abc123456
+    expire: 5
+    cache-expire: 10
+  email:
+    system: 1033538677@qq.com
+    hr: bowerfullstack@gmail.com
+  receiveNotify: http://192.168.31.146:8080/emos-wx-api/meeting/recieveNotity
+  code: HelloWorld
+
+# 微信小程序ID 和 密钥secret
+wx:
+  app-id: xx
+  app-secret: xx
+
+# 腾讯云ID 和 密钥secret 以及 COS相关配置
+tx:
+  secretId: xx
+  secretKey: xx
+  bucket: xx
+  region: xx
+  appId: xx
+  groupId: xx

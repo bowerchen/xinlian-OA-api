@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xinlian.emos.wx.db.dao.TbMeetingDao">
+  <select id="searchMyMeetingListByPage" parameterType="HashMap" resultType="HashMap">
+    select
+      m.id,
+      m.uuid,
+      u2.nickname,
+      u2.name,
+      DATE_FORMAT(m.date,'%Y年%m月%d日') as date,
+      m.place,
+      DATE_FORMAT(m.start,'%H:%i') as start,
+      DATE_FORMAT(m.end,'%H:%i') as end,
+      m.type,
+      m.status,
+      m.desc,
+      u2.photo,
+      m.title,
+      m.approve_id as approveId,
+	  m.approve_status as approve_status,
+      TIMESTAMPDIFF(HOUR,CONCAT(m.date," ",m.start),CONCAT(m.date," ",m.end)) AS hour
+    from tb_meeting m
+    join tb_user u1 on JSON_CONTAINS(m.members, CAST(u1.id AS CHAR))
+    join tb_user u2 on m.creator_id=u2.id
+    where u1.id=#{userId} and u1.status=1 and u2.status=1 and m.status IN(1,2,3,4,5)
+    ORDER BY m.date, m.start, m.id
+    limit #{start}, #{length}
+  </select>
+
+  <select id="searchUnapprovalMeetingListByPage" parameterType="HashMap" resultType="HashMap">
+    select
+      u1.`name` as creatorName,
+      u1.photo as creatorPhoto,
+      m.title,
+      m.id,
+      m.type,
+      DATE_FORMAT(m.date,'%Y-%m-%d') as date,
+	TIMESTAMPDIFF(HOUR,CONCAT(m.date," ",m.start),CONCAT(m.date," ",m.end)) AS hour
+    from tb_meeting m
+      join tb_user u1 on m.creator_id=u1.id
+    where m.status=1
+    ORDER BY m.date, m.start, m.id
+      LIMIT #{start},#{length}
+  </select>
+
+  <select id="searchApprovalMeetingListByPage" parameterType="HashMap" resultType="HashMap">
+    select
+      u1.`name` as creatorName,
+      u1.photo as creatorPhoto,
+      u2.`name` as approveName,
+      u2.photo as approvePhoto,
+      m.title,
+      m.id,
+      m.type,
+      m.approve_status as approveStatus,
+      m.approve_id as approveId,
+      m.creator_id as creatorId,
+      DATE_FORMAT(m.date,'%Y-%m-%d') as date,
+	TIMESTAMPDIFF(HOUR,CONCAT(m.date," ",m.start),CONCAT(m.date," ",m.end)) AS hour
+    from tb_meeting m
+      join tb_user u1 on m.creator_id=u1.id
+      join tb_user u2 on m.approve_id=u2.id
+    where m.status IN(1,2,3,4)
+    ORDER BY m.date, m.start, m.id
+      LIMIT #{start},#{length}
+  </select>
+
+  <select id="searchMeetingMembersInSameDept" parameterType="String" resultType="boolean">
+    select
+        if(count(distinct u.dept_id)=1, true, false) as bool
+    from tb_meeting m join tb_user u on json_contains(m.members, cast(u.id as char))
+    where m.uuid=#{uuid} and u.status = 1
+  </select>
+
+  <select id="searchMeetingById" parameterType="int" resultType="HashMap">
+    select
+      m.creator_id as creatorId,
+      m.title,
+      u.name,
+      DATE_FORMAT(m.date, '%Y-%m-%d') as date,
+        m.place,
+        DATE_FORMAT(m.start, '%H:%i') as start,
+      DATE_FORMAT(m.end, '%H:%i') as end,
+        m.type,
+        m.status,
+        m.desc,
+        m.approve_id as approveId,
+        m.approve_status as approveStatus
+    from tb_meeting m
+    join tb_user u on m.creator_id = u.id
+    where m.id=#{id} and u.status=1
+  </select>
+
+  <select id="searchMeetingMembers" parameterType="int" resultType="HashMap">
+    select
+      u.id,
+      u.name,
+      u.photo
+    from tb_meeting m
+    join tb_user u on JSON_CONTAINS(m.members, CAST(u.id as CHAR))
+    where m.id=#{id} and u.status=1
+  </select>
+
+  <insert id="insertMeeting" parameterType="com.xinlian.emos.wx.db.pojo.TbMeeting">
+    insert into tb_meeting
+    set uuid=#{uuid},
+    title=#{title},
+    date=#{date},
+    creator_id=#{creatorId},
+    <if test="place!=null">
+      place=#{place},
+    </if>
+    start=#{start},
+    end=#{end},
+    type=#{type},
+    members=#{members},
+    `desc`=#{desc},
+    instance_id=#{instanceId},
+    status=#{status},
+    create_time=NOW()
+  </insert>
+
+  <update id="updateMeetingInstanceId" parameterType="HashMap">
+    update tb_meeting
+    set instance_id = #{instanceId}
+    where uuid=#{uuid}
+  </update>
+
+  <update id="updateMeetingStatus" parameterType="HashMap">
+    update tb_meeting
+    set
+    <if test="status != null">
+        status = #{status},
+    </if>
+    <if test="approveId != null">
+        approve_id = #{approveId},
+    </if>
+    <if test="approveStatus != null">
+        approve_status = #{approveStatus}
+    </if>
+    where id = #{id}
+  </update>
+
+  <update id="updateMeetingInfo" parameterType="HashMap">
+    update tb_meeting
+    set title = #{title},
+        date = #{date},
+        <if test="place!=null">
+          place = #{place},
+        </if>
+        <if test="place==null">
+          place = NULL,
+        </if>
+        start = #{start},
+        end = #{end},
+        type = #{type},
+        members = #{members},
+        `desc` = #{desc}
+        where id =#{id} and status = 1
+  </update>
+
+  <delete id="deleteByMeetingId" parameterType="int">
+    delete from tb_meeting
+    where id = #{id}
+  </delete>
+</mapper>

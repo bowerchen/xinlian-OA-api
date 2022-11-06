@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xinlian.emos.wx.db.dao.TbUserDao">
+
+  <!--查询是否有超级管理员-->
+  <select id="haveRootUser" resultType="boolean">
+    SELECT IF(count(*), true, false) FROM tb_user WHERE root=1;
+  </select>
+
+  <!--查询用户ID-->
+  <select id="searchIdByOpenId" parameterType="String" resultType="Integer">
+    select id from tb_user where open_id = #{openId} and status = 1
+  </select>
+
+  <select id="searchUserPermissions" parameterType="int" resultType="String">
+    SELECT DISTINCT p.permission_name
+    FROM tb_user u
+    JOIN tb_role r ON JSON_CONTAINS(u.role, CAST(r.id AS CHAR))
+    JOIN tb_permission p ON JSON_CONTAINS(r.permissions, CAST(p.id AS CHAR))
+    WHERE u.id=#{userId} AND u.status=1;
+  </select>
+
+  <select id="searchById" parameterType="int" resultType="com.xinlian.emos.wx.db.pojo.TbUser">
+    select id, open_id, nickname, photo, name, sex, tel, role, root, dept_id, status, create_time
+    from tb_user where id=#{userId} and status=1;
+  </select>
+
+  <select id="searchUserHiredate" parameterType="int" resultType="String">
+    select hiredate from tb_user
+    where id=#{userId} and status=1;
+  </select>
+
+  <select id="searchUserSummary" parameterType="int" resultType="HashMap">
+    select u.name, u.photo, d.dept_name as deptName, u.status  as status
+    from tb_user u left join tb_dept d on u.dept_id=d.id
+    where u.id=#{userId} and u.status=1;
+  </select>
+
+  <select id="searchUserGroupByDept" parameterType="String" resultType="HashMap">
+    select d.id as deptId, d.dept_name as deptName, u.id as userId, u.name, u.tel, u.email, u.sex, u.photo
+    from tb_dept d join tb_user u on u.dept_id=d.id
+    where u.status=1
+    <if test="keyword != null">
+      and u.name like '%${keyword}%'
+    </if>
+    order by d.id, u.id;
+  </select>
+
+  <select id="searchMembers" parameterType="List" resultType="HashMap">
+    select id, name, photo, tel, sex, email
+    from tb_user
+    where status = 1
+    and id in
+    <foreach collection="list" index="index" item="one" open="(" separator=","  close=")">
+      #{one}
+    </foreach>
+  </select>
+
+
+  <select id="searchUserInfo" parameterType="int" resultType="HashMap">
+    select
+      u.open_id as openId,
+      u.nickname,
+      u.name,
+      u.photo,
+      u.sex,
+      u.tel,
+      u.email,
+      d.dept_name as deptName,
+      u.hiredate,
+      case u.status
+        when 1 then "在职"
+        when 2 then "离职"
+        end as status,
+      (select GROUP_CONCAT(role_name SEPARATOR ", ") from tb_role where JSON_CONTAINS(u.role, convert(id, CHAR))) as roles
+    from tb_user u
+           left join tb_dept d on u.dept_id = d.id
+    where u.id = #{userId} and u.status = 1
+  </select>
+
+  <select id="searchGmId" resultType="int">
+    select
+      u.id
+    from tb_user u join tb_role r on JSON_CONTAINS(u.role, cast(r.id as char))
+    where r.id=1 and u.status = 1
+  </select>
+
+  <select id="searchDeptManagerId" parameterType="int" resultType="int">
+    select
+      u2.id
+    from tb_user u1 join tb_user u2 on u1.dept_id = u2.dept_id
+    join tb_role r on JSON_CONTAINS(u2.role, cast(r.id as CHAR))
+    where u1.id = #{userId} and r.id=2 and u1.status = 1 and u2.status = 1
+  </select>
+
+  <!--新增员工信息-->
+  <insert id="insert" parameterType="java.util.HashMap">
+    insert into tb_user
+    set
+    <if test="openId != null">
+      open_id = #{openId},
+    </if>
+    <if test="nickname != null">
+      nickname = #{nickname},
+    </if>
+    <if test="photo != null">
+      photo = #{photo},
+    </if>
+    <if test="name != null">
+      name = #{name},
+    </if>
+    <if test="sex != null">
+      sex = #{sex},
+    </if>
+    <if test="tel != null">
+      tel = #{tel},
+    </if>
+    <if test="email != null">
+      email = #{email},
+    </if>
+    <if test="hiredate != null">
+      hiredate = #{hiredate},
+    </if>
+    root = #{root},
+    role = #{role},
+    <if test="deptName != null">
+      dept_id = (select id from tb_dept where dept_name = #{deptName}),
+    </if>
+      status = #{status},
+      create_time = #{createTime};
+  </insert>
+</mapper>
